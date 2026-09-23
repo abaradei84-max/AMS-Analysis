@@ -68,7 +68,7 @@ th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.e
 <script>
 let rows=[],yearChart,regionChart;
 const $=id=>document.getElementById(id);
-const required=["Molecule","Product Name","SKU","Region","Major Doc Spec","2024","2025","2026"];
+const required=["Molecule","Product Name","SKU","Region","Major Doc Spec","2024","2025","2026"];\nconst dashboardColumns=["Molecule","Product Name","SKU","Region","Major Doc Spec","2024","2025","GR% vs 2024","2026","GR% vs 2025","2025 Market Share %","2026 Market Share %","2025 Rank","2026 Rank"];\nlet excludedBlankRows=0;
 const dims={molecule:"Molecule",product:"Product Name",sku:"SKU",region:"Region",doc:"Major Doc Spec"};
 function n(v){const x=Number(String(v??0).replace(/,/g,""));return Number.isFinite(x)?x:0}
 function pct(a,b){if(!b)return a?null:0;return((a-b)/Math.abs(b))*100}
@@ -92,7 +92,7 @@ function update(){
  $("decline").textContent=c!=null&&c<0?Math.abs(c).toFixed(1)+"%":"0.0%";
  $("growthSub").textContent=latest&&prev?latest+" vs "+prev:"Select at least 2 years";$("declineSub").textContent=$("growthSub").textContent;
  drawYear(t,years);drawRegion(data,years);renderGrowth(data,years);renderPreview(data);
- $("status").textContent=data.length.toLocaleString()+" filtered rows • "+rows.length.toLocaleString()+" total rows";
+ $("status").textContent=data.length.toLocaleString()+" filtered rows • "+rows.length.toLocaleString()+" valid rows • "+excludedBlankRows.toLocaleString()+" blank rows excluded";
 }
 function drawYear(t,years){
  if(yearChart)yearChart.destroy();
