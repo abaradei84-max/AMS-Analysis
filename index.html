@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <title>AMS Analysis Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -29,7 +29,7 @@ th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.e
 </style>
 </head>
 <body><div class="app">
-<div class="header"><div class="title"><h1>AMS Analysis</h1><p>2024 • 2025 • 2026 performance dashboard</p></div><div class="badge">NEON ANALYTICS</div></div>
+<div class="header"><div class="title"><h1>AMS Analysis</h1><p>2024 • 2025 • 2026 performance dashboard</p></div><div class="badge">NEON ANALYTICS • BUILD 0923-4</div></div>
 <section class="panel">
 <div class="toolbar">
 <div><label>Excel / CSV file</label><input id="file" type="file" accept=".xlsx,.xls,.csv"></div>
@@ -44,7 +44,7 @@ th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.e
 <label class="year"><input type="checkbox" class="yearCheck" value="2025" checked>2025</label>
 <label class="year"><input type="checkbox" class="yearCheck" value="2026" checked>2026</label>
 </div>
-<div id="status" class="status">Upload the AMS file. This dashboard is mapped to the real columns: Molecule, Product Name, SKU, Region, Major Doc Spec, 2024, 2025 and 2026.</div>
+<div id="status" class="status">Ready • BUILD 0923-4 • Select the AMS CSV/Excel file.</div>
 </section>
 
 <section class="kpis">
@@ -132,9 +132,41 @@ function renderPreview(data){
  $("previewHead").innerHTML="<tr>"+headers.map(h=>"<th>"+esc(h)+"</th>").join("")+"</tr>";
  $("previewBody").innerHTML=data.slice(0,80).map(r=>"<tr>"+headers.map(h=>"<td>"+esc(r[h])+"</td>").join("")+"</tr>").join("")||'<tr><td class="empty">No matching data</td></tr>'
 }
+function parseCSV(text){
+ const out=[];let row=[],field="",q=false;
+ for(let i=0;i<text.length;i++){
+   const ch=text[i];
+   if(q){
+     if(ch==='"'&&text[i+1]==='"'){field+='"';i++}
+     else if(ch==='"')q=false;
+     else field+=ch;
+   }else{
+     if(ch==='"')q=true;
+     else if(ch===','){row.push(field);field=""}
+     else if(ch==='\n'){row.push(field);out.push(row);row=[];field=""}
+     else if(ch!=='\r')field+=ch;
+   }
+ }
+ if(field!==""||row.length){row.push(field);out.push(row)}
+ if(!out.length)return[];
+ const headers=out[0].map(h=>String(h).replace(/^\uFEFF/,"").trim());
+ return out.slice(1).filter(r=>r.some(v=>String(v).trim()!=="")).map(r=>{
+   const o={};headers.forEach((h,i)=>o[h]=r[i]??"");return o;
+ });
+}
 $("file").addEventListener("change",async e=>{
  const f=e.target.files[0];if(!f)return;
- try{$("status").textContent="Reading "+f.name+"…";const buf=await f.arrayBuffer(),wb=XLSX.read(buf,{type:"array"}),ws=wb.Sheets[wb.SheetNames[0]];const rawRows=XLSX.utils.sheet_to_json(ws,{defval:""});
+ try{
+ $("status").textContent="Reading "+f.name+"…";
+ await new Promise(requestAnimationFrame);
+ let rawRows=[];
+ if(f.name.toLowerCase().endsWith(".csv")){
+   rawRows=parseCSV(await f.text());
+ }else{
+   if(typeof XLSX==="undefined")throw new Error("Excel reader library did not load. Please use CSV or refresh the page.");
+   const buf=await f.arrayBuffer(),wb=XLSX.read(buf,{type:"array"}),ws=wb.Sheets[wb.SheetNames[0]];
+   rawRows=XLSX.utils.sheet_to_json(ws,{defval:""});
+ }
  if(!rawRows.length)throw new Error("The first sheet is empty.");
  const missing=required.filter(c=>!Object.hasOwn(rawRows[0],c));if(missing.length)throw new Error("Missing columns: "+missing.join(", "));
  const allColumns=Object.keys(rawRows[0]);
@@ -144,5 +176,5 @@ $("file").addEventListener("change",async e=>{
  Object.entries(dims).forEach(([id,col])=>fillFrom(id,col,rows));update()
  }catch(err){rows=[];$("status").textContent="Could not load file: "+err.message}
 });
-Object.keys(dims).forEach(id=>$(id).addEventListener("change",()=>{refreshFilters(id);update()}));document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));
+Object.keys(dims).forEach(id=>$(id).addEventListener("change",()=>{refreshFilters(id);update()}));document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));$("status").textContent="Ready • BUILD 0923-4 • Select the AMS CSV/Excel file.";
 </script></body></html>
