@@ -74,10 +74,24 @@ function n(v){const x=Number(String(v??0).replace(/,/g,""));return Number.isFini
 function pct(a,b){if(!b)return a?null:0;return((a-b)/Math.abs(b))*100}
 function fmt(v){return new Intl.NumberFormat("en-US",{maximumFractionDigits:1,notation:Math.abs(v)>=1000000?"compact":"standard"}).format(v||0)}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
-function unique(col){return[...new Set(rows.map(r=>String(r[col]??"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}))}
-function fill(id,col){const s=$(id),cur=s.value;s.innerHTML='<option value="All">All</option>';unique(col).forEach(v=>s.add(new Option(v,v)));if([...s.options].some(o=>o.value===cur))s.value=cur}
+function uniqueFrom(data,col){return[...new Set(data.map(r=>String(r[col]??"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}))}
+function fillFrom(id,col,data){
+ const s=$(id),cur=s.value;
+ s.innerHTML='<option value="All">All</option>';
+ uniqueFrom(data,col).forEach(v=>s.add(new Option(v,v)));
+ if([...s.options].some(o=>o.value===cur))s.value=cur;else s.value="All";
+}
 function selectedYears(){return[...document.querySelectorAll(".yearCheck:checked")].map(x=>x.value).sort()}
-function filtered(){return rows.filter(r=>Object.entries(dims).every(([id,col])=>$(id).value==="All"||String(r[col]??"").trim()===$(id).value))}
+function rowsForFilter(excludeId=null){
+ return rows.filter(r=>Object.entries(dims).every(([id,col])=>id===excludeId||$(id).value==="All"||String(r[col]??"").trim()===$(id).value))
+}
+function refreshFilters(changedId){
+ Object.entries(dims).forEach(([id,col])=>{
+   if(id===changedId)return;
+   fillFrom(id,col,rowsForFilter(id));
+ });
+}
+function filtered(){return rowsForFilter(null)}
 function totals(data){return{"2024":data.reduce((s,r)=>s+n(r["2024"]),0),"2025":data.reduce((s,r)=>s+n(r["2025"]),0),"2026":data.reduce((s,r)=>s+n(r["2026"]),0)}}
 function changeText(v){return v==null?"N/A":(v>=0?"+":"")+v.toFixed(1)+"%"}
 function update(){
@@ -118,11 +132,15 @@ function renderPreview(data){
 }
 $("file").addEventListener("change",async e=>{
  const f=e.target.files[0];if(!f)return;
- try{$("status").textContent="Reading "+f.name+"…";const buf=await f.arrayBuffer(),wb=XLSX.read(buf,{type:"array"}),ws=wb.Sheets[wb.SheetNames[0]];rows=XLSX.utils.sheet_to_json(ws,{defval:""});
- if(!rows.length)throw new Error("The first sheet is empty.");
- const missing=required.filter(c=>!Object.hasOwn(rows[0],c));if(missing.length)throw new Error("Missing columns: "+missing.join(", "));
- Object.entries(dims).forEach(([id,col])=>fill(id,col));update()
+ try{$("status").textContent="Reading "+f.name+"…";const buf=await f.arrayBuffer(),wb=XLSX.read(buf,{type:"array"}),ws=wb.Sheets[wb.SheetNames[0]];const rawRows=XLSX.utils.sheet_to_json(ws,{defval:""});
+ if(!rawRows.length)throw new Error("The first sheet is empty.");
+ const missing=required.filter(c=>!Object.hasOwn(rawRows[0],c));if(missing.length)throw new Error("Missing columns: "+missing.join(", "));
+ const allColumns=Object.keys(rawRows[0]);
+ rows=rawRows.filter(r=>allColumns.every(col=>String(r[col]??"").trim()!==""));
+ excludedBlankRows=rawRows.length-rows.length;
+ if(!rows.length)throw new Error("No complete rows remain after excluding rows with blank cells.");
+ Object.entries(dims).forEach(([id,col])=>fillFrom(id,col,rows));update()
  }catch(err){rows=[];$("status").textContent="Could not load file: "+err.message}
 });
-Object.keys(dims).forEach(id=>$(id).addEventListener("change",update));document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));
+Object.keys(dims).forEach(id=>$(id).addEventListener("change",()=>{refreshFilters(id);update()}));document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));
 </script></body></html>
