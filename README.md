@@ -1,35 +1,40 @@
 # AMS Analysis
 
-Interactive neon dashboard for comparing AMS data across **2024, 2025, and 2026**.
+Neon-style interactive dashboard for the AMS dataset, comparing **2024, 2025, and 2026**.
 
-## Features
+## Production data structure
 
-- Excel / XLS / CSV upload directly in the browser
-- Filters for Molecule, Product Name, SKU, Region, and Major Doc Spec
-- Year checkboxes for 2024 / 2025 / 2026
-- Dynamic numeric metric selector
-- KPI totals and year-over-year growth / decline
-- Year comparison chart
-- Regional distribution chart
-- Product-level growth / decline table
-- Filtered data preview
-- Dark neon responsive UI
-- No backend: uploaded files stay in the user's browser
-
-## Expected data
-
-The first worksheet should contain columns equivalent to:
+The dashboard is mapped to the supplied AMS file containing **136,035 rows** and these columns:
 
 - Molecule
 - Product Name
 - SKU
 - Region
 - Major Doc Spec
-- Year
-- One or more numeric metrics (for example Sales, Units, Value, Rx, etc.)
+- 2024
+- 2025
+- GR% vs 2024
+- 2026
+- GR% vs 2025
+- 2025 Market Share %
+- 2026 Market Share %
+- 2025 Rank
+- 2026 Rank
 
-Column names are auto-detected for common variants. Once the production Excel file is available, the mappings can be made exact.
+## Features
+
+- Excel / XLS / CSV upload in the browser
+- Filters for Molecule, Product Name, SKU, Region, and Major Doc Spec
+- Year checkboxes for 2024 / 2025 / 2026
+- Total AMS KPI by year
+- Dynamic growth and decline percentages after filtering
+- Year comparison chart
+- Regional distribution chart for the latest selected year
+- Product-level growth / decline ranking
+- Filtered raw-data preview including market share and rank
+- Responsive dark neon interface
+- No backend and no dataset committed to the public repository; uploaded data stays in the browser
 
 ## GitHub Pages
 
-This repository is intentionally a static site. Enable GitHub Pages from the repository settings and serve from the root of the `main` branch.
+Serve `index.html` from the root of the `main` branch using GitHub Pages.
