@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AMS Analysis Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#05070d; --panel:#0c1220; --panel2:#0a0f1a; --text:#eef7ff; --muted:#8ca2b8;
+      --cyan:#00f5ff; --green:#39ff88; --pink:#ff3df2; --red:#ff4d6d; --yellow:#ffe66d;
+      --border:rgba(0,245,255,.20); --glow:0 0 18px rgba(0,245,255,.22);
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:
+      radial-gradient(circle at 15% 10%,rgba(0,245,255,.08),transparent 28%),
+      radial-gradient(circle at 85% 0%,rgba(255,61,242,.07),transparent 24%),var(--bg);color:var(--text)}
+    .app{max-width:1500px;margin:auto;padding:24px}
+    .header{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:18px}
+    .title h1{margin:0;font-size:clamp(25px,4vw,42px);letter-spacing:.4px;text-shadow:0 0 16px rgba(0,245,255,.45)}
+    .title p{margin:7px 0 0;color:var(--muted)}
+    .badge{padding:10px 14px;border:1px solid var(--border);border-radius:999px;color:var(--cyan);box-shadow:var(--glow);font-size:13px}
+    .panel{background:linear-gradient(180deg,rgba(13,20,35,.96),rgba(7,11,20,.96));border:1px solid var(--border);border-radius:18px;box-shadow:var(--glow);padding:18px}
+    .toolbar{display:grid;grid-template-columns:1.2fr repeat(6,minmax(125px,1fr));gap:12px;margin-bottom:16px}
+    label{display:block;color:var(--muted);font-size:12px;margin-bottom:7px;text-transform:uppercase;letter-spacing:.08em}
+    select,input[type=file]{width:100%;background:#07101a;color:var(--text);border:1px solid rgba(0,245,255,.22);border-radius:10px;padding:10px;outline:none}
+    select:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,245,255,.09)}
+    .years{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .year{display:flex;align-items:center;gap:7px;color:var(--text);font-size:14px}
+    input[type=checkbox]{width:17px;height:17px;accent-color:var(--cyan)}
+    .status{margin-top:10px;color:var(--muted);font-size:13px}
+    .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin:16px 0}
+    .kpi{position:relative;overflow:hidden}
+    .kpi:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--cyan);box-shadow:0 0 16px var(--cyan)}
+    .kpi .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+    .kpi .value{font-size:28px;font-weight:800;margin-top:8px}
+    .kpi .sub{font-size:12px;color:var(--muted);margin-top:5px}
+    .positive{color:var(--green)!important;text-shadow:0 0 10px rgba(57,255,136,.35)}
+    .negative{color:var(--red)!important;text-shadow:0 0 10px rgba(255,77,109,.35)}
+    .charts{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-bottom:14px}
+    .chartbox{min-height:360px}.chartbox canvas{max-height:315px}
+    .bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.07);text-align:left}
+    th{color:var(--cyan);font-weight:650}.empty{padding:42px;text-align:center;color:var(--muted)}
+    .tablewrap{overflow:auto;max-height:410px}
+    @media(max-width:1100px){.toolbar{grid-template-columns:repeat(3,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}.charts,.bottom{grid-template-columns:1fr}}
+    @media(max-width:650px){.app{padding:14px}.toolbar{grid-template-columns:1fr}.kpis{grid-template-columns:1fr}.header{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="title"><h1>AMS Analysis</h1><p>2024 • 2025 • 2026 performance dashboard</p></div>
+    <div class="badge">NEON ANALYTICS</div>
+  </div>
+
+  <section class="panel">
+    <div class="toolbar">
+      <div><label>Excel file</label><input id="file" type="file" accept=".xlsx,.xls,.csv" /></div>
+      <div><label>Metric</label><select id="metric"><option value="">Upload file</option></select></div>
+      <div><label>Molecule</label><select id="molecule"><option>All</option></select></div>
+      <div><label>Product Name</label><select id="product"><option>All</option></select></div>
+      <div><label>SKU</label><select id="sku"><option>All</option></select></div>
+      <div><label>Region</label><select id="region"><option>All</option></select></div>
+      <div><label>Major Doc Spec</label><select id="doc"><option>All</option></select></div>
+    </div>
+    <div>
+      <label>Compare years</label>
+      <div class="years">
+        <label class="year"><input type="checkbox" class="yearCheck" value="2024" checked> 2024</label>
+        <label class="year"><input type="checkbox" class="yearCheck" value="2025" checked> 2025</label>
+        <label class="year"><input type="checkbox" class="yearCheck" value="2026" checked> 2026</label>
+      </div>
+    </div>
+    <div id="status" class="status">Upload your Excel sheet. Expected dimensions: Molecule, Product Name, SKU, Region, Major Doc Spec, Year + at least one numeric metric.</div>
+  </section>
+
+  <section class="kpis">
+    <div class="panel kpi"><div class="label">2024</div><div id="v2024" class="value">—</div><div class="sub">Selected metric total</div></div>
+    <div class="panel kpi"><div class="label">2025</div><div id="v2025" class="value">—</div><div id="g25" class="sub">Growth vs 2024: —</div></div>
+    <div class="panel kpi"><div class="label">2026</div><div id="v2026" class="value">—</div><div id="g26" class="sub">Growth vs 2025: —</div></div>
+    <div class="panel kpi"><div class="label">Growth</div><div id="growth" class="value positive">—</div><div class="sub">Latest selected year vs previous</div></div>
+    <div class="panel kpi"><div class="label">Decline</div><div id="decline" class="value negative">—</div><div class="sub">Negative change magnitude</div></div>
+  </section>
+
+  <section class="charts">
+    <div class="panel chartbox"><label>Year comparison</label><canvas id="yearChart"></canvas></div>
+    <div class="panel chartbox"><label>Regional distribution</label><canvas id="regionChart"></canvas></div>
+  </section>
+
+  <section class="bottom">
+    <div class="panel"><label>Growth / decline by product</label><div class="tablewrap"><table><thead><tr><th>Product</th><th>Previous</th><th>Latest</th><th>Change</th></tr></thead><tbody id="growthTable"><tr><td colspan="4" class="empty">Upload data to begin</td></tr></tbody></table></div></div>
+    <div class="panel"><label>Filtered data preview</label><div class="tablewrap"><table><thead id="previewHead"></thead><tbody id="previewBody"><tr><td class="empty">No data yet</td></tr></tbody></table></div></div>
+  </section>
+</div>
+
+<script>
+let rows=[], yearChart, regionChart;
+const $=id=>document.getElementById(id);
+const normalize=s=>String(s??"").trim().toLowerCase().replace(/[\s_\-\/]+/g,"");
+const aliases={
+  molecule:["molecule","molecules"],
+  product:["productname","product","brandname"],
+  sku:["sku","skucode","itemcode"],
+  region:["region","area","territory"],
+  doc:["majordocspec","majordocspecialty","major doctor specialty","specialty","spec"],
+  year:["year","yr"]
+};
+let cols={};
+
+function detectColumns(headers){
+  const out={};
+  for(const [key,names] of Object.entries(aliases)){
+    out[key]=headers.find(h=>names.map(normalize).includes(normalize(h))) || "";
+  }
+  return out;
+}
+function unique(col){return [...new Set(rows.map(r=>String(r[col]??"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));}
+function fill(id,col){
+  const s=$(id), current=s.value; s.innerHTML='<option value="All">All</option>';
+  if(col) unique(col).forEach(v=>s.add(new Option(v,v)));
+  if([...s.options].some(o=>o.value===current)) s.value=current;
+}
+function numericColumns(headers){
+  return headers.filter(h=>{
+    if(Object.values(cols).includes(h)) return false;
+    const vals=rows.map(r=>r[h]).filter(v=>v!==""&&v!=null).slice(0,100);
+    return vals.length && vals.filter(v=>!isNaN(Number(String(v).replace(/,/g,"")))).length/vals.length>.8;
+  });
+}
+function num(v){const n=Number(String(v??0).replace(/,/g,"")); return Number.isFinite(n)?n:0;}
+function fmt(v){return new Intl.NumberFormat("en-US",{maximumFractionDigits:1,notation:Math.abs(v)>=1000000?"compact":"standard"}).format(v||0)}
+function pct(a,b){if(!b) return a?null:0; return ((a-b)/Math.abs(b))*100}
+function filtered(){
+  const selectedYears=[...document.querySelectorAll(".yearCheck:checked")].map(x=>x.value);
+  const filters=[["molecule",cols.molecule],["product",cols.product],["sku",cols.sku],["region",cols.region],["doc",cols.doc]];
+  return rows.filter(r=>{
+    const y=String(r[cols.year]??"").trim();
+    if(cols.year && !selectedYears.includes(y)) return false;
+    return filters.every(([id,col])=>!col || $(id).value==="All" || String(r[col]??"").trim()===$(id).value);
+  });
+}
+function totalsByYear(data,metric){
+  const o={2024:0,2025:0,2026:0}; data.forEach(r=>{const y=String(r[cols.year]??""); if(y in o)o[y]+=num(r[metric])}); return o;
+}
+function update(){
+  const metric=$("metric").value; if(!metric || !rows.length) return;
+  const data=filtered(), totals=totalsByYear(data,metric);
+  ["2024","2025","2026"].forEach(y=>$("v"+y).textContent=fmt(totals[y]));
+  const p25=pct(totals[2025],totals[2024]), p26=pct(totals[2026],totals[2025]);
+  $("g25").textContent="Growth vs 2024: "+(p25==null?"N/A":p25.toFixed(1)+"%");
+  $("g26").textContent="Growth vs 2025: "+(p26==null?"N/A":p26.toFixed(1)+"%");
+  const years=[...document.querySelectorAll(".yearCheck:checked")].map(x=>+x.value).sort();
+  let change=null;
+  if(years.length>=2){const a=years.at(-1),b=years.at(-2);change=pct(totals[a],totals[b]);}
+  $("growth").textContent=change!=null&&change>0?"+"+change.toFixed(1)+"%":"0.0%";
+  $("decline").textContent=change!=null&&change<0?Math.abs(change).toFixed(1)+"%":"0.0%";
+
+  const ctx=$("yearChart"); if(yearChart) yearChart.destroy();
+  yearChart=new Chart(ctx,{type:"bar",data:{labels:["2024","2025","2026"],datasets:[{label:metric,data:[totals[2024],totals[2025],totals[2026]],borderWidth:1}]},options:{responsive:true,plugins:{legend:{labels:{color:"#dfefff"}}},scales:{x:{ticks:{color:"#8ca2b8"},grid:{color:"rgba(255,255,255,.04)"}},y:{ticks:{color:"#8ca2b8"},grid:{color:"rgba(255,255,255,.07)"}}}}});
+
+  const reg={}; data.forEach(r=>{const k=cols.region?String(r[cols.region]||"Unknown"):"All";reg[k]=(reg[k]||0)+num(r[metric])});
+  const regEntries=Object.entries(reg).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  if(regionChart) regionChart.destroy();
+  regionChart=new Chart($("regionChart"),{type:"doughnut",data:{labels:regEntries.map(x=>x[0]),datasets:[{data:regEntries.map(x=>x[1]),borderWidth:1}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"#dfefff",boxWidth:12}}}}});
+
+  renderGrowth(data,metric,years); renderPreview(data);
+  $("status").textContent=data.length.toLocaleString()+" filtered rows • Metric: "+metric;
+}
+function renderGrowth(data,metric,years){
+  const tb=$("growthTable"); if(!cols.product||years.length<2){tb.innerHTML='<tr><td colspan="4" class="empty">Need Product Name and at least 2 selected years</td></tr>';return}
+  const prev=String(years.at(-2)), latest=String(years.at(-1)), map={};
+  data.forEach(r=>{const p=String(r[cols.product]||"Unknown");map[p]??={};const y=String(r[cols.year]);map[p][y]=(map[p][y]||0)+num(r[metric])});
+  const out=Object.entries(map).map(([p,v])=>({p,a:v[prev]||0,b:v[latest]||0,c:pct(v[latest]||0,v[prev]||0)})).sort((a,b)=>Math.abs(b.c||0)-Math.abs(a.c||0)).slice(0,50);
+  tb.innerHTML=out.map(x=>'<tr><td>'+esc(x.p)+'</td><td>'+fmt(x.a)+'</td><td>'+fmt(x.b)+'</td><td class="'+((x.c||0)>=0?"positive":"negative")+'">'+(x.c==null?"N/A":(x.c>=0?"+":"")+x.c.toFixed(1)+"%")+'</td></tr>').join("")||'<tr><td colspan="4" class="empty">No matching data</td></tr>';
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+function renderPreview(data){
+  const take=data.slice(0,80), headers=rows.length?Object.keys(rows[0]).slice(0,10):[];
+  $("previewHead").innerHTML="<tr>"+headers.map(h=>"<th>"+esc(h)+"</th>").join("")+"</tr>";
+  $("previewBody").innerHTML=take.map(r=>"<tr>"+headers.map(h=>"<td>"+esc(r[h]??"")+"</td>").join("")+"</tr>").join("")||'<tr><td class="empty">No matching data</td></tr>';
+}
+$("file").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{
+    $("status").textContent="Reading "+f.name+"…";
+    const buf=await f.arrayBuffer(), wb=XLSX.read(buf,{type:"array"}), ws=wb.Sheets[wb.SheetNames[0]];
+    rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+    if(!rows.length) throw new Error("The first sheet is empty.");
+    const headers=Object.keys(rows[0]); cols=detectColumns(headers);
+    const nums=numericColumns(headers); $("metric").innerHTML=nums.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");
+    fill("molecule",cols.molecule);fill("product",cols.product);fill("sku",cols.sku);fill("region",cols.region);fill("doc",cols.doc);
+    const missing=Object.entries(cols).filter(([k,v])=>!v).map(([k])=>k);
+    $("status").textContent="Loaded "+rows.length.toLocaleString()+" rows from "+wb.SheetNames[0]+(missing.length?" • Auto-detection missing: "+missing.join(", "):"");
+    update();
+  }catch(err){$("status").textContent="Could not read file: "+err.message}
+});
+["metric","molecule","product","sku","region","doc"].forEach(id=>$(id).addEventListener("change",update));
+document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));
+</script>
+</body></html>
