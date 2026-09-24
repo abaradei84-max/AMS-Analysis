@@ -38,7 +38,7 @@ th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.e
 </style>
 </head>
 <body><div class="app">
-<div class="header"><div class="title"><h1>AMS Analysis</h1><p>2024 • 2025 • 2026 performance dashboard</p></div><div class="badge">NEON ANALYTICS • BUILD 0924-2</div></div>
+<div class="header"><div class="title"><h1>AMS Analysis</h1><p>2024 • 2025 • 2026 performance dashboard</p></div><div class="badge">NEON ANALYTICS • BUILD 0924-3</div></div>
 <section class="panel">
 <div class="toolbar">
 <div><label>Excel / CSV file</label><input id="file" type="file" accept=".xlsx,.xls,.csv"></div>
@@ -54,7 +54,7 @@ th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.e
 <label class="year"><input type="checkbox" class="yearCheck" value="2025" checked>2025</label>
 <label class="year"><input type="checkbox" class="yearCheck" value="2026" checked>2026</label>
 </div>
-<div id="status" class="status">Ready • BUILD 0924-2 • Select the AMS CSV/Excel file.</div>
+<div id="status" class="status">Ready • BUILD 0924-3 • Select the AMS CSV/Excel file.</div>
 </section>
 
 <section class="kpis">
@@ -220,5 +220,5 @@ Object.keys(dims).forEach(id=>{
  });
 });
 document.addEventListener("click",()=>document.querySelectorAll(".checkfilter.open").forEach(x=>x.classList.remove("open")));
-document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));$("status").textContent="Ready • BUILD 0924-2 • Select the AMS CSV/Excel file.";
+document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));$("status").textContent="Ready • BUILD 0924-3 • Select the AMS CSV/Excel file.";
 </script></body></html>
