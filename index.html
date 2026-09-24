@@ -30,7 +30,7 @@ input[type=checkbox]{width:17px;height:17px;accent-color:var(--cyan)}.status{mar
 .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin:16px 0}.kpi{position:relative;overflow:hidden}.kpi:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--cyan);box-shadow:0 0 16px var(--cyan)}
 .kpi .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.kpi .value{font-size:28px;font-weight:800;margin-top:8px}.kpi .sub{font-size:12px;color:var(--muted);margin-top:5px}
 .positive{color:var(--green)!important;text-shadow:0 0 10px rgba(57,255,136,.35)}.negative{color:var(--red)!important;text-shadow:0 0 10px rgba(255,77,109,.35)}
-.charts{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-bottom:14px}.chartbox{min-height:360px}.chartbox canvas{max-height:315px}
+.charts{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-bottom:14px}.chartbox{min-height:360px}.chartbox canvas{max-height:315px} #productChart{min-height:520px;max-height:520px}
 .bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.07);text-align:left;white-space:nowrap}
 th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.empty{padding:42px;text-align:center;color:var(--muted)}.tablewrap{overflow:auto;max-height:430px}
 @media(max-width:1100px){.toolbar{grid-template-columns:repeat(3,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}.charts,.bottom{grid-template-columns:1fr}}
@@ -38,7 +38,7 @@ th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.e
 </style>
 </head>
 <body><div class="app">
-<div class="header"><div class="title"><h1>AMS Analysis</h1><p>2024 • 2025 • 2026 performance dashboard</p></div><div class="badge">NEON ANALYTICS • BUILD 0924-3</div></div>
+<div class="header"><div class="title"><h1>AMS Analysis</h1><p>2024 • 2025 • 2026 performance dashboard</p></div><div class="badge">NEON ANALYTICS • BUILD 0924-4</div></div>
 <section class="panel">
 <div class="toolbar">
 <div><label>Excel / CSV file</label><input id="file" type="file" accept=".xlsx,.xls,.csv"></div>
@@ -54,7 +54,7 @@ th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.e
 <label class="year"><input type="checkbox" class="yearCheck" value="2025" checked>2025</label>
 <label class="year"><input type="checkbox" class="yearCheck" value="2026" checked>2026</label>
 </div>
-<div id="status" class="status">Ready • BUILD 0924-3 • Select the AMS CSV/Excel file.</div>
+<div id="status" class="status">Ready • BUILD 0924-4 • Select the AMS CSV/Excel file.</div>
 </section>
 
 <section class="kpis">
@@ -70,13 +70,18 @@ th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.e
 <div class="panel chartbox"><label id="regionTitle">Regional distribution</label><canvas id="regionChart"></canvas></div>
 </section>
 
+<section class="panel chartbox" style="margin-bottom:14px">
+<label id="productChartTitle">Top products</label>
+<canvas id="productChart"></canvas>
+</section>
+
 <section class="bottom">
 <div class="panel"><label>Growth / decline by product</label><div class="tablewrap"><table><thead><tr><th>Product</th><th id="prevHead">Previous</th><th id="latestHead">Latest</th><th>Change</th></tr></thead><tbody id="growthTable"><tr><td colspan="4" class="empty">Upload data to begin</td></tr></tbody></table></div></div>
 <div class="panel"><label>Filtered data preview</label><div class="tablewrap"><table><thead id="previewHead"></thead><tbody id="previewBody"><tr><td class="empty">No data yet</td></tr></tbody></table></div></div>
 </section>
 </div>
 <script>
-let rows=[],yearChart,regionChart;
+let rows=[],yearChart,regionChart,productChart;
 const $=id=>document.getElementById(id);
 const required=["Molecule","Product Name","SKU","Region","Major Doc Spec","2024","2025","2026"];
 const dashboardColumns=["Molecule","Product Name","SKU","Region","Major Doc Spec","2024","2025","GR% vs 2024","2026","GR% vs 2025","2025 Market Share %","2026 Market Share %","2025 Rank","2026 Rank"];
@@ -131,7 +136,7 @@ function update(){
  $("growth").textContent=c!=null&&c>0?"+"+c.toFixed(1)+"%":"0.0%";
  $("decline").textContent=c!=null&&c<0?Math.abs(c).toFixed(1)+"%":"0.0%";
  $("growthSub").textContent=latest&&prev?latest+" vs "+prev:"Select at least 2 years";$("declineSub").textContent=$("growthSub").textContent;
- drawYear(t,years);drawRegion(data,years);renderGrowth(data,years);renderPreview(data);
+ drawYear(t,years);drawRegion(data,years);drawProduct(data,years);renderGrowth(data,years);renderPreview(data);
  $("status").textContent=data.length.toLocaleString()+" filtered rows • "+rows.length.toLocaleString()+" valid rows • "+excludedBlankRows.toLocaleString()+" blank rows excluded";
 }
 function drawYear(t,years){
@@ -143,6 +148,36 @@ function drawRegion(data,years){
  const e=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,12);$("regionTitle").textContent="Regional distribution • "+y;
  if(regionChart)regionChart.destroy();
  regionChart=new Chart($("regionChart"),{type:"doughnut",data:{labels:e.map(x=>x[0]),datasets:[{data:e.map(x=>x[1]),borderWidth:1}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"#dfefff",boxWidth:12}}}}})
+}
+function drawProduct(data,years){
+ const y=years.at(-1)||"2026",map={};
+ data.forEach(r=>{
+   const p=String(r["Product Name"]||"Unknown");
+   map[p]=(map[p]||0)+n(r[y]);
+ });
+ const e=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,20);
+ $("productChartTitle").textContent="Top 20 products • "+y;
+ if(productChart)productChart.destroy();
+ productChart=new Chart($("productChart"),{
+   type:"bar",
+   data:{
+     labels:e.map(x=>x[0]),
+     datasets:[{label:"AMS "+y,data:e.map(x=>x[1]),borderWidth:1}]
+   },
+   options:{
+     indexAxis:"y",
+     responsive:true,
+     maintainAspectRatio:false,
+     plugins:{
+       legend:{labels:{color:"#dfefff"}},
+       tooltip:{callbacks:{label:c=>" AMS: "+Number(c.raw).toLocaleString()}}
+     },
+     scales:{
+       x:{ticks:{color:"#8ca2b8"},grid:{color:"rgba(255,255,255,.07)"}},
+       y:{ticks:{color:"#8ca2b8",autoSkip:false},grid:{color:"rgba(255,255,255,.03)"}}
+     }
+   }
+ });
 }
 function renderGrowth(data,years){
  const tb=$("growthTable");if(years.length<2){tb.innerHTML='<tr><td colspan="4" class="empty">Select at least 2 years</td></tr>';return}
@@ -220,5 +255,5 @@ Object.keys(dims).forEach(id=>{
  });
 });
 document.addEventListener("click",()=>document.querySelectorAll(".checkfilter.open").forEach(x=>x.classList.remove("open")));
-document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));$("status").textContent="Ready • BUILD 0924-3 • Select the AMS CSV/Excel file.";
+document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));$("status").textContent="Ready • BUILD 0924-4 • Select the AMS CSV/Excel file.";
 </script></body></html>
