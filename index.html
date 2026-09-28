@@ -38,7 +38,7 @@ th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.e
 </style>
 </head>
 <body><div class="app">
-<div class="header"><div class="title"><h1>AMS Analysis</h1><p>2024 • 2025 • 2026 performance dashboard</p></div><div class="badge">NEON ANALYTICS • BUILD 0924-5</div></div>
+<div class="header"><div class="title"><h1>AMS Analysis</h1><p>2024 • 2025 • 2026 performance dashboard</p></div><div class="badge">NEON ANALYTICS • BUILD 0928-1</div></div>
 <section class="panel">
 <div class="toolbar">
 <div><label>Excel / CSV file</label><input id="file" type="file" accept=".xlsx,.xls,.csv"></div>
@@ -54,7 +54,7 @@ th{color:var(--cyan);font-weight:650;position:sticky;top:0;background:#0b1220}.e
 <label class="year"><input type="checkbox" class="yearCheck" value="2025" checked>2025</label>
 <label class="year"><input type="checkbox" class="yearCheck" value="2026" checked>2026</label>
 </div>
-<div id="status" class="status">Ready • BUILD 0924-5 • Select the AMS CSV/Excel file.</div>
+<div id="status" class="status">Ready • BUILD 0928-1 • Select the AMS CSV/Excel file.</div>
 </section>
 
 <section class="kpis">
@@ -127,6 +127,9 @@ function refreshFilters(changedId){
    if(id===changedId)return;
    fillFrom(id,col,rowsForFilter(id));
  });
+ // keep the active checkbox menu open while the user is selecting
+ const active=$(changedId);
+ if(active)active.classList.add("open");
 }
 function filtered(){return rowsForFilter(null)}
 function totals(data){return{"2024":data.reduce((s,r)=>s+n(r["2024"]),0),"2025":data.reduce((s,r)=>s+n(r["2025"]),0),"2026":data.reduce((s,r)=>s+n(r["2026"]),0)}}
@@ -280,6 +283,7 @@ Object.keys(dims).forEach(id=>{
    document.querySelectorAll(".checkfilter.open").forEach(x=>{if(x!==box)x.classList.remove("open")});
    box.classList.toggle("open");
  });
+ box.querySelector(".checkmenu").addEventListener("click",e=>e.stopPropagation());
  box.addEventListener("change",e=>{
    const t=e.target;if(!t.matches('input[type="checkbox"]'))return;
    const all=box.querySelector('input[value="__all__"]');
@@ -289,9 +293,9 @@ Object.keys(dims).forEach(id=>{
      if(all)all.checked=false;
    }
    if(selectedValues(id).length===0&&all)all.checked=true;
-   updateFilterButton(id);refreshFilters(id);update();
+   updateFilterButton(id);refreshFilters(id);update();box.classList.add("open");
  });
 });
 document.addEventListener("click",()=>document.querySelectorAll(".checkfilter.open").forEach(x=>x.classList.remove("open")));
-document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));$("status").textContent="Ready • BUILD 0924-5 • Select the AMS CSV/Excel file.";
+document.querySelectorAll(".yearCheck").forEach(x=>x.addEventListener("change",update));$("status").textContent="Ready • BUILD 0928-1 • Select the AMS CSV/Excel file.";
 </script></body></html>
